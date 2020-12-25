@@ -4,3 +4,5 @@ Temp/*
 *.csproj
 *.userprefs
 .idea
+obj
+Logs
