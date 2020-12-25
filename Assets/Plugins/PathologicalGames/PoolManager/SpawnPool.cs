@@ -1,9 +1,3 @@
-/// <Licensing>
-/// � 2011 (Copyright) Path-o-logical Games, LLC
-/// Licensed under the Unity Asset Package Product License (the "License");
-/// You may not use this file except in compliance with the License.
-/// You may obtain a copy of the License at: http://licensing.path-o-logical.com
-/// </Licensing>
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -705,37 +699,6 @@ namespace PathologicalGames
 
 
         /// <summary>
-        ///	See docs for SpawnInstance(ParticleSystems prefab, Vector3 pos, Quaternion rot)
-        ///	This is the same but for ParticleEmitters
-        ///	
-        /// IMPORTANT: 
-        ///     * This function turns off Unity's ParticleAnimator autodestruct if
-        ///       one is found.
-        /// </summary>
-        public ParticleEmitter Spawn(ParticleEmitter prefab,
-                                     Vector3 pos, Quaternion rot)
-        {
-            // Instance using the standard method before doing particle stuff
-            Transform inst = this.Spawn(prefab.transform, pos, rot);
-
-            // Can happen if limit was used
-            if (inst == null) return null;
-
-            // Make sure autodestrouct is OFF as it will cause null references
-            var animator = inst.GetComponent<ParticleAnimator>();
-            if (animator != null) animator.autodestruct = false;
-
-            // Get the emitter
-            var emitter = inst.GetComponent<ParticleEmitter>();
-            emitter.emit = true;
-
-            this.StartCoroutine(this.ListenForEmitDespawn(emitter));
-
-            return emitter;
-        }
-
-
-        /// <summary>
         /// This will not be supported for Shuriken particles. This will eventually 
         /// be depricated.
         /// </summary>
@@ -748,7 +711,7 @@ namespace PathologicalGames
         /// <param name="colorPropertyName">Same as Material.SetColor()</param>
         /// <param name="color">a Color object. Same as Material.SetColor()</param>
         /// <returns>The instance's ParticleEmitter</returns>
-        public ParticleEmitter Spawn(ParticleEmitter prefab,
+        public ParticleSystem Spawn(ParticleSystem prefab,
                                      Vector3 pos, Quaternion rot,
                                      string colorPropertyName, Color color)
         {
@@ -759,15 +722,15 @@ namespace PathologicalGames
             if (inst == null) return null;
 
             // Make sure autodestrouct is OFF as it will cause null references
-            var animator = inst.GetComponent<ParticleAnimator>();
-            if (animator != null) animator.autodestruct = false;
+            // var animator = inst.GetComponent<ParticleAnimator>();
+            // if (animator != null) animator.autodestruct = false;
 
             // Get the emitter
-            var emitter = inst.GetComponent<ParticleEmitter>();
+            var emitter = inst.GetComponent<ParticleSystem>();
 
             // Set the color of the particles, then emit
             emitter.GetComponent<Renderer>().material.SetColor(colorPropertyName, color);
-            emitter.emit = true;
+            emitter.enableEmission = true;
 
             this.StartCoroutine(ListenForEmitDespawn(emitter));
 
@@ -999,47 +962,6 @@ namespace PathologicalGames
         }
 
 
-        /// <summary>
-        /// Used to determine when a particle emiter should be despawned
-        /// </summary>
-        /// <param name="emitter">ParticleEmitter to process</param>
-        /// <returns></returns>
-        private IEnumerator ListenForEmitDespawn(ParticleEmitter emitter)
-        {
-            // This will wait for the particles to emit. Without this, there will
-            //   be no particles in the while test below. I don't know why the extra 
-            //   frame is required but should never be noticable. No particles can
-            //   fade out that fast and still be seen to change over time.
-            yield return null;
-            yield return new WaitForEndOfFrame();
-
-            // Do nothing until all particles die or the safecount hits a max value
-            float safetimer = 0;   // Just in case! See Spawn() for more info
-            while (emitter.particleCount > 0)
-            {
-                safetimer += Time.deltaTime;
-                if (safetimer > this.maxParticleDespawnTime)
-                    Debug.LogWarning
-                    (
-                        string.Format
-                        (
-                            "SpawnPool {0}: " +
-                                "Timed out while listening for all particles to die. " +
-                                "Waited for {1}sec.",
-                            this.poolName,
-                            this.maxParticleDespawnTime
-                        )
-                    );
-
-                yield return null;
-            }
-
-            // Turn off emit before despawning
-            emitter.emit = false;
-            this.Despawn(emitter.transform);
-        }
-
-        // ParticleSystem (Shuriken) Version...
         private IEnumerator ListenForEmitDespawn(ParticleSystem emitter)
         {
             // Wait for the delay time to complete
